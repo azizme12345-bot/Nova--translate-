@@ -64,6 +64,19 @@ export default function App() {
     }
   }, [showToast]);
 
+  // Clean up Speech Recognition session on unmount
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch (e) {
+          console.error('Speech Recognition cleanup error:', e);
+        }
+      }
+    };
+  }, []);
+
   // Sync dark mode preference with CSS class and localStorage
   useEffect(() => {
     const savedDark = localStorage.getItem('novaDarkMode') === 'true';
@@ -158,11 +171,25 @@ export default function App() {
 
     if (isListening) {
       if (recognitionRef.current) {
-        recognitionRef.current.stop();
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {
+          console.error(e);
+        }
       }
       setIsListening(false);
       triggerToast('Listening stopped');
       return;
+    }
+
+    // Safely abort any existing session to prevent overlapping mic instances
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+      } catch (e) {
+        console.error(e);
+      }
+      recognitionRef.current = null;
     }
 
     const recognition = new SpeechRecognition();
